@@ -101,7 +101,6 @@ public class RemoteAudioSource: AudioStreamSource {
     func close() {
         retrierTimeout.cancel()
         netStatusService.stop()
-        streamOperationQueue.isSuspended = true
         streamOperationQueue.cancelAllOperations()
         if let streamTask = streamRequest {
             streamTask.cancel()
@@ -190,16 +189,7 @@ public class RemoteAudioSource: AudioStreamSource {
         switch event {
         case let .success(value):
             if let data = value.data {
-                addStreamOperation { [weak self] in
-                    guard let self = self else { return }
-                    if self.metadataStreamProcessor.canProccessMetadata {
-                        let extractedAudioData = self.metadataStreamProcessor.proccessMetadata(data: data)
-                        self.delegate?.dataAvailable(source: self, data: extractedAudioData)
-                    } else {
-                        self.delegate?.dataAvailable(source: self, data: data)
-                    }
-                    self.relativePosition += data.count
-                }
+                addStreamOperation(data: data)
             }
         case .failure:
             if !netStatusService.isConnected {
@@ -260,8 +250,13 @@ public class RemoteAudioSource: AudioStreamSource {
     /// Schedules the given block on the stream operation queue
     ///
     /// - Parameter block: A closure to be executed
-    private func addStreamOperation(_ block: @escaping () -> Void) {
-        let operation = BlockOperation(block: block)
+    private func addStreamOperation(data: Data) {
+        let operation = NetworkDataOperation(data: data, proccessor: metadataStreamProcessor)
+        operation.executionCompleted = { [weak self] data in
+            guard let self = self else { return }
+            self.delegate?.dataAvailable(source: self, data: data)
+            self.relativePosition += data.count
+        }
         streamOperationQueue.addOperation(operation)
     }
 
@@ -281,4 +276,3 @@ extension RemoteAudioSource: MetadataStreamSourceDelegate {
         delegate?.metadataReceived(data: data)
     }
 }
-

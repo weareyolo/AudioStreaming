@@ -592,11 +592,12 @@ public final class AudioPlayer {
             readingEntry.close()
         }
 
-        entry.delegate = self
-        entry.seek(at: 0)
         playerContext.entriesLock.lock()
         playerContext.audioReadingEntry = entry
         playerContext.entriesLock.unlock()
+
+        playerContext.audioReadingEntry?.delegate = self
+        playerContext.audioReadingEntry?.seek(at: 0)
 
         if startPlaying {
             if shouldClearQueue {
@@ -722,6 +723,7 @@ extension AudioPlayer: AudioStreamSourceDelegate {
             }
 
             if playerContext.audioReadingEntry == nil {
+                source.delegate = nil
                 source.close()
             }
         }
