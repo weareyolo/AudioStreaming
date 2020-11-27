@@ -36,13 +36,9 @@ final class NetworkDataOperation: Operation {
         guard let data = data else { return }
         if proccessor.canProccessMetadata {
             let extractedAudioData = proccessor.proccessMetadata(data: data)
-            proccessedData = extractedAudioData
+            executionCompleted?(extractedAudioData)
         } else {
-            proccessedData = data
-        }
-        if let proccessedData = proccessedData {
-            self.data = nil
-            executionCompleted?(proccessedData)
+            executionCompleted?(data)
         }
         self.data = nil
     }

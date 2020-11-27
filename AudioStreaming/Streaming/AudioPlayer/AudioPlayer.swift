@@ -109,7 +109,7 @@ public final class AudioPlayer {
     let playerRenderProcessor: AudioPlayerRenderProcessor
 
     private let audioReadSource: DispatchTimerSource
-    private let underlyingQueue = DispatchQueue(label: "streaming.core.queue", qos: .userInitiated, attributes: .concurrent)
+    private let underlyingQueue = DispatchQueue(label: "streaming.core.queue", qos: .userInitiated)
     private let sourceQueue: DispatchQueue
 
     private let entryProvider: AudioEntryProviding
