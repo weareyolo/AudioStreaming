@@ -29,6 +29,7 @@ public class RemoteAudioSource: AudioStreamSource {
     private var parsedHeaderOutput: HTTPHeaderParserOutput?
     private var relativePosition: Int
     private var seekOffset: Int
+    private var supportsSeek: Bool
 
     internal var metadataStreamProcessor: MetadataStreamSource
 
@@ -59,6 +60,7 @@ public class RemoteAudioSource: AudioStreamSource {
         additionalRequestHeaders = httpHeaders
         relativePosition = 0
         seekOffset = 0
+        supportsSeek = false
         netStatusService = netStatusProvider
         self.underlyingQueue = underlyingQueue
         streamOperationQueue = OperationQueue()
@@ -115,9 +117,7 @@ public class RemoteAudioSource: AudioStreamSource {
         relativePosition = 0
         seekOffset = offset
 
-        if let supportsSeek = parsedHeaderOutput?.supportsSeek,
-           !supportsSeek, offset != relativePosition
-        {
+        if !supportsSeek, offset != relativePosition {
             return
         }
 
@@ -206,6 +206,11 @@ public class RemoteAudioSource: AudioStreamSource {
         let httpStatusCode = response.statusCode
         let parser = HTTPHeaderParser()
         parsedHeaderOutput = parser.parse(input: response)
+
+        if let acceptRanges = parser.value(forHTTPHeaderField: HeaderField.acceptRanges, in: response) {
+            supportsSeek = acceptRanges != "none"
+        }
+
         // check to see if we have metadata to proccess
         if let metadataStep = parsedHeaderOutput?.metadataStep {
             metadataStreamProcessor.metadataAvailable(step: metadataStep)
@@ -232,7 +237,7 @@ public class RemoteAudioSource: AudioStreamSource {
         urlRequest.addValue("1", forHTTPHeaderField: "Icy-MetaData")
         urlRequest.addValue("identity", forHTTPHeaderField: "Accept-Encoding")
 
-        if let supportsSeek = parsedHeaderOutput?.supportsSeek, supportsSeek, seekOffset > 0 {
+        if supportsSeek && seekOffset > 0 {
             urlRequest.addValue("bytes=\(seekOffset)-", forHTTPHeaderField: "Range")
         }
         return urlRequest
