@@ -4,7 +4,6 @@
 //
 
 final class NetworkDataOperation: Operation {
-
     private var data: Data?
     private let proccessor: MetadataStreamSource
 
@@ -14,10 +13,10 @@ final class NetworkDataOperation: Operation {
 
     init(data: Data, proccessor: MetadataStreamSource) {
         // copy bytes so we don't work with volatile data from network
-        self.data = data.withUnsafeBytes({ pointer -> Data? in
+        self.data = data.withUnsafeBytes { pointer -> Data? in
             guard !data.isEmpty else { return nil }
             return Data(bytes: pointer.baseAddress!, count: pointer.count)
-        })
+        }
         self.proccessor = proccessor
         super.init()
     }

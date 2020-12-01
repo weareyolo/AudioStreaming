@@ -237,7 +237,7 @@ public class RemoteAudioSource: AudioStreamSource {
         urlRequest.addValue("1", forHTTPHeaderField: "Icy-MetaData")
         urlRequest.addValue("identity", forHTTPHeaderField: "Accept-Encoding")
 
-        if supportsSeek && seekOffset > 0 {
+        if supportsSeek, seekOffset > 0 {
             urlRequest.addValue("bytes=\(seekOffset)-", forHTTPHeaderField: "Range")
         }
         return urlRequest

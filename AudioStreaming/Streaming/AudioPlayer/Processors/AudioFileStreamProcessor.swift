@@ -227,7 +227,6 @@ final class AudioFileStreamProcessor {
         case kAudioFileStreamProperty_AudioDataPacketCount:
             proccessAudioDataPacketCount(fileStream: fileStream)
         case kAudioFileStreamProperty_ReadyToProducePackets:
-            // check converter for discontious stream
             processReadyToProducePackets(fileStream: fileStream)
         case kAudioFileStreamProperty_FormatList:
             processFormatList(fileStream: fileStream)
