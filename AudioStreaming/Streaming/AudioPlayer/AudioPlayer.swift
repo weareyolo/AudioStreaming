@@ -80,6 +80,8 @@ public final class AudioPlayer {
         }
         return entry.progress
     }
+    
+    private var initialSeek: Int = 0
 
     public private(set) var customAttachedNodes = [AVAudioNode]()
 
@@ -166,6 +168,16 @@ public final class AudioPlayer {
     public func play(url: URL) {
         play(url: url, headers: [:])
     }
+    
+    /// Starts the audio playback for the given URL
+    ///
+    /// - parameter url: A `URL` specifying the audio context to be played.
+    /// - parameter position: An `Int` specifying the position offset to start playback.
+    public func play(url: URL, seek position: Int) {
+        initialSeek = position
+        let audioEntry = entryProvider.provideAudioEntry(url: url, seek: position)
+        configureAudio(audioEntry: audioEntry)
+    }
 
     /// Starts the audio playback for the given URL
     ///
@@ -173,6 +185,10 @@ public final class AudioPlayer {
     /// - parameter headers: A `Dictionary` specifying any additional headers to be pass to the network request.
     public func play(url: URL, headers: [String: String]) {
         let audioEntry = entryProvider.provideAudioEntry(url: url, headers: headers)
+        configureAudio(audioEntry: audioEntry)
+    }
+    
+    private func configureAudio(audioEntry: AudioEntry) {
         audioEntry.delegate = self
 
         checkRenderWaitingAndNotifyIfNeeded()
@@ -630,7 +646,8 @@ public final class AudioPlayer {
         }
 
         entry.delegate = self
-        entry.seek(at: 0)
+        entry.seek(at: initialSeek)
+        initialSeek = 0
         playerContext.entriesLock.lock()
         playerContext.audioReadingEntry = entry
         playerContext.entriesLock.unlock()
@@ -742,6 +759,7 @@ extension AudioPlayer: AudioStreamSourceDelegate {
         }
 
         if !fileStreamProcessor.isFileStreamOpen {
+            Logger.debug("🌮 File Stream Not Open", category: .generic)
             let openFileStreamStatus = fileStreamProcessor.openFileStream(with: source.audioFileHint)
             guard openFileStreamStatus == noErr else {
                 let streamError = AudioFileStreamError(status: openFileStreamStatus)
@@ -751,6 +769,7 @@ extension AudioPlayer: AudioStreamSourceDelegate {
         }
 
         if fileStreamProcessor.isFileStreamOpen {
+            Logger.debug("🌮 File Stream Open", category: .generic)
             let streamBytesStatus = fileStreamProcessor.parseFileStreamBytes(data: data)
             guard streamBytesStatus == noErr else {
                 if let playingEntry = playerContext.audioPlayingEntry, playingEntry.has(same: source) {

@@ -106,6 +106,35 @@ public class RemoteAudioSource: AudioStreamSource {
                   underlyingQueue: underlyingQueue,
                   httpHeaders: [:])
     }
+    
+    init(networking: NetworkingClient,
+                     url: URL,
+                     underlyingQueue: DispatchQueue,
+                     seek position: Int)
+    {
+        let metadataParser = MetadataParser()
+        let metadataProcessor = MetadataStreamProcessor(parser: metadataParser.eraseToAnyParser())
+        let netStatusProvider = NetStatusService(network: NWPathMonitor())
+        let icyheaderProcessor = IcycastHeadersProcessor()
+        let retrierTimout = Retrier(interval: .seconds(1), maxInterval: 5, underlyingQueue: nil)
+        networkingClient = networking
+        metadataStreamProcessor = metadataProcessor
+        self.url = url
+        additionalRequestHeaders = [:]
+        relativePosition = 0
+        seekOffset = position
+        supportsSeek = true
+        netStatusService = netStatusProvider
+        self.icycastHeadersProcessor = icyheaderProcessor
+        self.underlyingQueue = underlyingQueue
+        streamOperationQueue = OperationQueue()
+        streamOperationQueue.underlyingQueue = underlyingQueue
+        streamOperationQueue.maxConcurrentOperationCount = 1
+        streamOperationQueue.isSuspended = true
+        streamOperationQueue.name = "remote.audio.source.data.stream.queue"
+        retrierTimeout = retrierTimout
+        startNetworkService()
+    }
 
     func close() {
         retrierTimeout.cancel()
@@ -292,6 +321,10 @@ public class RemoteAudioSource: AudioStreamSource {
 
         if supportsSeek && seekOffset > 0 {
             urlRequest.addValue("bytes=\(seekOffset)-", forHTTPHeaderField: "Range")
+            Logger.debug("🇩🇿 [%@]", category: .networking, args: seekOffset)
+        } else {
+            urlRequest.addValue("bytes=0-", forHTTPHeaderField: "Range")
+            Logger.debug("🇩🇿 [0]", category: .networking)
         }
         return urlRequest
     }

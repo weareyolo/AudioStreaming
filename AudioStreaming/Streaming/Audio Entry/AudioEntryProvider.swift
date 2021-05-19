@@ -8,6 +8,7 @@ import AVFoundation
 protocol AudioEntryProviding {
     func provideAudioEntry(url: URL, headers: [String: String]) -> AudioEntry
     func provideAudioEntry(url: URL) -> AudioEntry
+    func provideAudioEntry(url: URL, seek position: Int) -> AudioEntry
 }
 
 final class AudioEntryProvider: AudioEntryProviding {
@@ -22,6 +23,18 @@ final class AudioEntryProvider: AudioEntryProviding {
         self.networkingClient = networkingClient
         self.underlyingQueue = underlyingQueue
         self.outputAudioFormat = outputAudioFormat
+    }
+
+    func provideAudioEntry(url: URL, seek position: Int) -> AudioEntry {
+        let source = RemoteAudioSource(networking: networkingClient,
+                          url: url,
+                          underlyingQueue: underlyingQueue,
+                          seek: position)
+        let entry = AudioEntry(source: source,
+                          entryId: AudioEntryId(id: url.absoluteString),
+                          outputAudioFormat: outputAudioFormat)
+        entry.seek(at: position)
+        return entry
     }
 
     func provideAudioEntry(url: URL, headers: [String: String]) -> AudioEntry {
